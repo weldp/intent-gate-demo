@@ -47,23 +47,29 @@ adjacency[n] := {e[1] | some e in edges; e[0] == n} if some n in nodes
 reachable := graph.reachable(adjacency, {contract.root})
 
 # ---- Semantic change classes ----
-deny contains msg if {
+# Each finding carries metadata so CI can render a semantic change report.
+short(a) := split(a, ".")[1]
+
+deny contains {"msg": msg, "metadata": m} if {
 	some [from, to, "logsTo"] in edges
 	from in reachable
 	not to in contract.egress.logs_to
-	msg := sprintf("BLOCK new egress route: %s -logsTo-> %s (account: %s). Contract allows logs_to %v", [from, to, account(to), contract.egress.logs_to])
+	m := {"class": "new egress route", "path": sprintf("%s -logsTo-> %s", [short(from), short(to)]), "detail": sprintf("%s is in account: %s", [short(to), account(to)]), "contract": sprintf("logs_to = %s", [concat(", ", [short(x) | some x in contract.egress.logs_to])])}
+	msg := sprintf("BLOCK %s: %s (%s). Contract: %s", [m.class, m.path, m.detail, m.contract])
 }
 
-deny contains msg if {
+deny contains {"msg": msg, "metadata": m} if {
 	some [from, to, "deliversTo"] in edges
 	from in reachable
 	not to in contract.egress.notify
-	msg := sprintf("BLOCK new egress destination: %s -deliversTo-> %s. Contract allows notify %v", [from, to, contract.egress.notify])
+	m := {"class": "new egress destination", "path": sprintf("%s -deliversTo-> %s", [short(from), to]), "detail": "", "contract": sprintf("notify = %s", [concat(", ", contract.egress.notify)])}
+	msg := sprintf("BLOCK %s: %s. Contract: %s", [m.class, m.path, m.contract])
 }
 
-deny contains msg if {
+deny contains {"msg": msg, "metadata": m} if {
 	some n in reachable
 	acct := account(n)
 	acct != contract.placement.account
-	msg := sprintf("BLOCK data reaches another account: %s is in account %s, contract placement is %s", [n, acct, contract.placement.account])
+	m := {"class": "data reaching another account", "path": short(n), "detail": sprintf("in account: %s", [acct]), "contract": sprintf("placement = %s", [contract.placement.account])}
+	msg := sprintf("BLOCK %s: %s (%s). Contract: %s", [m.class, m.path, m.detail, m.contract])
 }

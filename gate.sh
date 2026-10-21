@@ -9,9 +9,8 @@ mkdir -p out
   $TF plan -input=false -refresh=false -var offline_demo=true -out=../out/tfplan >/dev/null &&
   $TF show -json ../out/tfplan > ../out/plan.json ) || exit 2
 
-echo "== Existing scanners (Checkov) =="
-checkov -f out/plan.json --framework terraform_plan --skip-check CKV_AWS_144 --compact --quiet --skip-download | grep -E "Passed checks|FAILED"
+CHECKOV=$(checkov -f out/plan.json --framework terraform_plan --skip-check CKV_AWS_144 --compact --quiet --skip-download -o json \
+  | python3 -c "import json,sys; s=json.load(sys.stdin)['summary']; print(f\"{s['passed']} passed, {s['failed']} failed\")")
 
-echo
-echo "== Intent gate (conftest) =="
-conftest test out/plan.json --policy policy --data intent
+conftest test out/plan.json --policy policy --data intent -o json > out/intent.json
+python3 scripts/report.py out/intent.json intent/customer-data-store.yaml "$CHECKOV"

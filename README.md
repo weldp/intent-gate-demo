@@ -27,6 +27,7 @@ the repo asking for logs to be "accessible across environments".
   resource, and blocks paths the contract doesn't allow
 - `.github/workflows/intent-gate.yml` CI: plan with a read-only role, scanners
   first, then the intent gate
+- `scripts/report.py` turns the gate's findings into a semantic change report for the PR
 - `gate.sh` the same steps locally, no AWS credentials needed
 
 ## Run it

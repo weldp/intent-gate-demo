@@ -1,25 +1,18 @@
-# Intent contract: what this service is allowed to become.
-# Reviewed in PRs like any other requirement. Owner approves changes.
 contract:
   service: customer-data-store
-  owner: data-platform            # CODEOWNERS: @acme/data-platform
+  owner: data-platform
   classification: customer-pii
+  retention: 400d
   root: aws_s3_bucket.customer_data
-
-  placement:
-    account: prod
-
-  # Which Terraform provider alias deploys into which account
-  accounts:
-    aws.prod: prod
-    aws.test: test
-
+  placement: {account: prod}
+  accounts: {aws.prod: prod, aws.test: test}
+  ingress: [orders-api]
   egress:
-    logs_to:
-      - aws_s3_bucket.prod_access_log
-    notify:
-      - ops-mail@acme.example
-
+    logs_to: [aws_s3_bucket.prod_access_log]
+    notify: [ops-mail@acme.example]
+  identities:
+    customer-data-writer: [s3:PutObject]
+  controls: [sse-kms, access-logging, public-access-block]
   needs_named_approval:
     - new egress route
     - new egress destination

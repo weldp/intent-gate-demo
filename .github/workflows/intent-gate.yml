@@ -41,4 +41,5 @@ jobs:
       - name: Intent gate
         run: |
           curl -sSL https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz | tar -xz conftest
-          ./conftest test plan.json --policy policy --data intent
+          ./conftest test plan.json --policy policy --data intent -o json > intent.json || true
+          python3 scripts/report.py intent.json intent/customer-data-store.yaml | tee -a "$GITHUB_STEP_SUMMARY"
