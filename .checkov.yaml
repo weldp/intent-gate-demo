@@ -1,0 +1,6 @@
+# Documented exceptions, reviewed by the platform team.
+skip-check:
+  - CKV_AWS_144  # Cross-region replication: single-region by design for this service
+framework:
+  - terraform
+compact: true
