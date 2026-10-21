@@ -17,13 +17,21 @@ print(f"INTENT GATE  {contract['service']}  {status}")
 if checkov:
     print(f"checkov: {checkov}")
 print("-" * 44)
+# Group findings of the same class and contract line into one block
+groups = {}
 for f in fails:
     m = f["metadata"]
-    print(f"[BLOCK] {m['class']}")
-    print(f"  {m['path']}")
-    if m["detail"]:
-        print(f"  {m['detail']}")
-    print(f"  contract: {m['contract']}")
+    groups.setdefault((m["class"], m["detail"], m["contract"]), []).append(m["path"])
+for (cls, detail, contract_line), paths in groups.items():
+    print(f"[BLOCK] {cls}")
+    if detail.startswith("in account"):
+        print(f"  {', '.join(paths)} {detail}")
+    else:
+        for p in paths:
+            print(f"  {p}")
+        if detail:
+            print(f"  {detail}")
+    print(f"  contract: {contract_line}")
 print("-" * 44)
 print(f"owner to approve: {contract['owner']}")
 sys.exit(1 if fails else 0)
