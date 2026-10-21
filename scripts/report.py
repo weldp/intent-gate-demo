@@ -6,6 +6,9 @@ results = json.load(open(sys.argv[1]))
 contract = yaml.safe_load(open(sys.argv[2]))["contract"]
 checkov = sys.argv[3] if len(sys.argv) > 3 else ""
 fails = [f for r in results for f in (r.get("failures") or [])]
+# conftest nests rule metadata one level down
+for f in fails:
+    f["metadata"] = f["metadata"].get("metadata", f["metadata"])
 order = ["new egress route", "new egress destination", "data reaching another account"]
 fails.sort(key=lambda f: (order.index(f["metadata"]["class"]), f["metadata"]["path"]))
 
