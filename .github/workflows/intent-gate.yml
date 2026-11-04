@@ -1,5 +1,7 @@
 # Runs on every PR that touches infrastructure, including PRs opened by agents.
-# The job can plan but never apply: its role is read-only in both accounts.
+# Demo mode: plans offline with no AWS credentials, the same steps as gate.sh.
+# For real accounts, add aws-actions/configure-aws-credentials with a read-only
+# plan role, and remove -var offline_demo=true from the plan.
 name: intent-gate
 
 on:
@@ -8,38 +10,29 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # OIDC into a read-only plan role
 
 jobs:
   gate:
     runs-on: ubuntu-latest
+    env:
+      TF: tofu
     steps:
       - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1
         with:
-          terraform_wrapper: false
+          tofu_wrapper: false
 
-      - name: Read-only credentials for planning
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/setup-python@v5
         with:
-          role-to-assume: ${{ vars.PLAN_ROLE_ARN }}   # plan-only; apply lives elsewhere
-          aws-region: us-east-1
+          python-version: "3.12"
 
-      - name: Plan
-        working-directory: infra
-        run: |
-          terraform init -input=false
-          terraform plan -input=false -out=tfplan
-          terraform show -json tfplan > ../plan.json
-
-      - name: Existing scanners first
+      - name: Install scanners
         run: |
           pip install checkov
-          checkov -f plan.json --framework terraform_plan --skip-check CKV_AWS_144
+          curl -sSL https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz | sudo tar -xz -C /usr/local/bin conftest
 
+      # shell: bash turns on pipefail, so a BLOCK fails the job through tee
       - name: Intent gate
-        run: |
-          curl -sSL https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz | tar -xz conftest
-          ./conftest test plan.json --policy policy --data intent -o json > intent.json || true
-          python3 scripts/report.py intent.json intent/customer-data-store.yaml | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: ./gate.sh | tee -a "$GITHUB_STEP_SUMMARY"

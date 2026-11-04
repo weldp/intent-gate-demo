@@ -50,3 +50,7 @@ Use `TF=tofu ./gate.sh` for OpenTofu.
   pattern with more edge types.
 - The workflow is a reference. Plan roles, account IDs and the conftest
   version need adapting to your environment.
+
+## Requirements
+
+OpenTofu or Terraform, Checkov (install with pip), conftest, and Python with PyYAML (`pip install pyyaml`).
